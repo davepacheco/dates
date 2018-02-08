@@ -1,0 +1,174 @@
+#!/usr/bin/env node
+
+/*
+ * dates: command-line utility to work with dates
+ *
+ *     dates              # prints current time (in several forms)
+ *     dates TIME         # prints time TIME (in several forms)
+ *     dates T1 T2        # prints T1, T2, and the delta between them
+ *     dates T1 [+-]DELTA # prints T1, DELTA, and T2 = T1 + DELTA
+ *
+ * TODO
+ *
+ *     dates [+-]DELTA    # prints current time offset by DELTA
+ *     add support for specifying another timezone to print out
+ *     add support for parsing more flexible duration specifications
+ *     (e.g., 3h2m)
+ */
+
+var mod_cmdutil = require('cmdutil');
+var mod_extsprintf = require('extsprintf');
+var mod_jsprim = require('jsprim');
+var VError = require('verror');
+
+var printf = mod_extsprintf.printf;
+
+function main()
+{
+	var argv;
+	var d1, d2, delta;
+
+	argv = process.argv.slice(2);
+	if (argv.length === 0) {
+		/* Print current time. */
+		datesPrint('current time', new Date());
+		return;
+	}
+
+	d1 = parseDateTime(argv[0]);
+	if (d1 instanceof Error) {
+		mod_cmdutil.fail(d1);
+	}
+
+	if (argv.length === 1) {
+		/* Print specified time. */
+		datesPrint('given time', d1);
+		return;
+	}
+
+	if (argv[1].trim().charAt(0) == '-' ||
+	    argv[1].trim().charAt(0) == '+') {
+		/* Add duration to given time. */
+		delta = parseDuration(argv[1]);
+		if (delta instanceof Error) {
+			mod_cmdutil.fail(delta);
+		}
+
+		d2 = new Date(d1.getTime() + delta);
+		datesPrint('given time', d1);
+		datesPrintDelta('delta', delta);
+		datesPrint('new time', d2);
+		return;
+	}
+
+	d2 = parseDateTime(argv[1]);
+	if (d2 instanceof Error) {
+		mod_cmdutil.fail(d2);
+	}
+
+	delta = d2.getTime() - d1.getTime();
+	datesPrint('time 1', d1);
+	datesPrint('time 2', d2);
+	datesPrintDelta('delta', delta);
+}
+
+function parseDateTime(str)
+{
+	var d;
+
+	d = mod_jsprim.parseDateTime(str);
+	if (isNaN(d.getTime())) {
+		return (new VError('failed to parse time: "%s"', str));
+	}
+
+	return (d);
+}
+
+/*
+ * XXX it would be nice if this supported the same kinds of durations we emit
+ * (e.g., 3h2m, instead of just 182m)
+ */
+function parseDuration(str)
+{
+	var match, v, sfx, rv;
+
+	/*
+	 * This is somewhat unfortunate, but here we are.  It would be nice if
+	 * jsprim's parseInteger() returned the suffix somehow.  We explicitly
+	 * allow "." through, even though we don't support fractional values, so
+	 * that we'll get a crisp error from parseInteger().
+	 */
+	match = str.trim().match(/^([+-][0-9\.]+)(.*)/);
+	if (match === null) {
+		return (new VError('unsupported duration: "%s"', str));
+	}
+
+	v = mod_jsprim.parseInteger(match[1]);
+	if (v instanceof Error) {
+		return (new VError(v, 'unsupported duration: "%s"', str));
+	}
+
+	sfx = match[2];
+	switch (sfx) {
+	case '':
+		rv = new VError('duration is missing a unit ' +
+		    '(e.g., "s" for seconds): "%s"', str);
+		break;
+
+	case 'ms':
+		rv = v;
+		break;
+
+	case 's':
+		rv = v * 1000;
+		break;
+
+	case 'm':
+		rv = v * 1000 * 60;
+		break;
+
+	case 'h':
+		rv = v * 1000 * 60 * 60;
+		break;
+
+	case 'd':
+		rv = v * 1000 * 60 * 60 * 24;
+		break;
+
+	default:
+		rv = new VError('unsupported unit for duration: "%s" ', str);
+		break;
+	}
+
+	return (rv);
+}
+
+function datesPrint(label, time)
+{
+	var ms = time.getTime();
+	printf('%-10s  %10d.%03d s = %-24s\n', label,
+	    Math.floor(ms / 1000), ms % 1000, time.toISOString());
+}
+
+function datesPrintDelta(label, duration)
+{
+	var d, h, m, s, ms;
+
+	ms = duration % 1000;
+	s = Math.floor(duration / 1000);
+
+	m = Math.floor(s / 60);
+	s = s % 60;
+
+	h = Math.floor(m / 60);
+	m = m % 60;
+
+	d = Math.floor(h / 24);
+	h = h % 24;
+
+	printf('%-10s  %10d.%03d s = %dd %02dh %02dm %02d.%03ds\n',
+	    label, Math.floor(duration / 1000), duration % 1000,
+	    d, h, m, s, ms);
+}
+
+main();

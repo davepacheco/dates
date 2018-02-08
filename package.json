@@ -1,0 +1,16 @@
+{
+	"name": "dates-tool",
+	"version": "1.0.0",
+	"description": "command-line tool for working with timestamps and deltas",
+	"bin": {
+		"dates": "./bin/dates"
+	},
+	"dependencies": {
+		"cmdutil": "^1.1.0",
+		"extsprintf": "^1.4.0",
+		"jsprim": "^2.0.0",
+		"verror": "^1.10.0"
+	},
+	"author": "David Pacheco <dap@joyent.com>",
+	"license": "MPL-2.0"
+}
