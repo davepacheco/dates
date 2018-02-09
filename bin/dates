@@ -5,12 +5,12 @@
  *
  *     dates              # prints current time (in several forms)
  *     dates TIME         # prints time TIME (in several forms)
+ *     dates [+-]DELTA    # prints current time offset by DELTA
  *     dates T1 T2        # prints T1, T2, and the delta between them
  *     dates T1 [+-]DELTA # prints T1, DELTA, and T2 = T1 + DELTA
  *
  * TODO
  *
- *     dates [+-]DELTA    # prints current time offset by DELTA
  *     add support for specifying another timezone to print out
  *     add support for parsing more flexible duration specifications
  *     (e.g., 3h2m)
@@ -25,7 +25,7 @@ var printf = mod_extsprintf.printf;
 
 function main()
 {
-	var argv;
+	var argv, arg1, arg2;
 	var d1, d2, delta;
 
 	argv = process.argv.slice(2);
@@ -35,7 +35,22 @@ function main()
 		return;
 	}
 
-	d1 = parseDateTime(argv[0]);
+	arg1 = argv[0].trim();
+	if (arg1.charAt(0) == '-' || arg1.charAt(0) == '+') {
+		/* Print current time plus delta. */
+		delta = parseDuration(arg1);
+		if (delta instanceof Error) {
+			mod_cmdutil.fail(delta);
+		}
+
+		d1 = new Date();
+		datesPrint('current time', d1);
+		datesPrintDelta('delta', delta);
+		datesPrint('new time', new Date(d1.getTime() + delta));
+		return;
+	}
+
+	d1 = parseDateTime(arg1);
 	if (d1 instanceof Error) {
 		mod_cmdutil.fail(d1);
 	}
@@ -46,10 +61,10 @@ function main()
 		return;
 	}
 
-	if (argv[1].trim().charAt(0) == '-' ||
-	    argv[1].trim().charAt(0) == '+') {
+	arg2 = argv[1].trim();
+	if (arg2.charAt(0) == '-' || arg2.charAt(0) == '+') {
 		/* Add duration to given time. */
-		delta = parseDuration(argv[1]);
+		delta = parseDuration(arg2);
 		if (delta instanceof Error) {
 			mod_cmdutil.fail(delta);
 		}
@@ -61,7 +76,8 @@ function main()
 		return;
 	}
 
-	d2 = parseDateTime(argv[1]);
+	/* Print delta between two times. */
+	d2 = parseDateTime(arg2);
 	if (d2 instanceof Error) {
 		mod_cmdutil.fail(d2);
 	}
@@ -146,7 +162,7 @@ function parseDuration(str)
 function datesPrint(label, time)
 {
 	var ms = time.getTime();
-	printf('%-10s  %10d.%03d s = %-24s\n', label,
+	printf('%-12s  %10d.%03d s = %-24s\n', label,
 	    Math.floor(ms / 1000), ms % 1000, time.toISOString());
 }
 
@@ -166,7 +182,7 @@ function datesPrintDelta(label, duration)
 	d = Math.floor(h / 24);
 	h = h % 24;
 
-	printf('%-10s  %10d.%03d s = %dd %02dh %02dm %02d.%03ds\n',
+	printf('%-12s  %10d.%03d s = %dd %02dh %02dm %02d.%03ds\n',
 	    label, Math.floor(duration / 1000), duration % 1000,
 	    d, h, m, s, ms);
 }

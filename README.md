@@ -28,6 +28,13 @@ Print the current time:
     $ dates
     current time  1518126137.313 s = 2018-02-08T21:42:17.313Z
 
+Print an offset from the current time:
+
+    $ dates +3h
+    current time  1518148708.039 s = 2018-02-09T03:58:28.039Z
+    delta              10800.000 s = 0d 03h 00m 00.000s
+    new time      1518159508.039 s = 2018-02-09T06:58:28.039Z
+
 Format a timestamp, either as a millisecond Unix time or an ISO 8601 time:
 
     $ dates 2018-02-08
