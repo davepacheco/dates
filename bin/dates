@@ -11,7 +11,6 @@
  *
  * TODO
  *
- *     add support for specifying another timezone to print out
  *     add support for parsing more flexible duration specifications
  *     (e.g., 3h2m)
  */
@@ -31,7 +30,7 @@ function main()
 	argv = process.argv.slice(2);
 	if (argv.length === 0) {
 		/* Print current time. */
-		datesPrint('current time', new Date());
+		datesPrint('now', new Date());
 		return;
 	}
 
@@ -44,9 +43,9 @@ function main()
 		}
 
 		d1 = new Date();
-		datesPrint('current time', d1);
+		datesPrint('time 1', d1);
 		datesPrintDelta('delta', delta);
-		datesPrint('new time', new Date(d1.getTime() + delta));
+		datesPrint('time 2', new Date(d1.getTime() + delta));
 		return;
 	}
 
@@ -57,7 +56,7 @@ function main()
 
 	if (argv.length === 1) {
 		/* Print specified time. */
-		datesPrint('given time', d1);
+		datesPrint('time', d1);
 		return;
 	}
 
@@ -70,9 +69,9 @@ function main()
 		}
 
 		d2 = new Date(d1.getTime() + delta);
-		datesPrint('given time', d1);
+		datesPrint('time 1', d1);
 		datesPrintDelta('delta', delta);
-		datesPrint('new time', d2);
+		datesPrint('time 2', d2);
 		return;
 	}
 
@@ -162,8 +161,17 @@ function parseDuration(str)
 function datesPrint(label, time)
 {
 	var ms = time.getTime();
-	printf('%-12s  %10d.%03d s = %-24s\n', label,
+	var tzoff = time.getTimezoneOffset();
+
+	printf('%-6s  %10d.%03d s = ', label,
 	    Math.floor(ms / 1000), ms % 1000, time.toISOString());
+	printf('%04d-%02d-%02dT%02d:%02d:%02d.%03d%s%02d:%02d\n',
+	    time.getFullYear(), time.getMonth() + 1, time.getDate(),
+	    time.getHours(), time.getMinutes(), time.getSeconds(),
+	    time.getMilliseconds(), tzoff <= 0 ? '+' : '-',
+	    Math.floor(Math.abs(tzoff) / 60), tzoff % 60);
+	printf('%24s = ', '');
+	printf('%-24s\n', time.toISOString());
 }
 
 function datesPrintDelta(label, duration)
@@ -182,7 +190,7 @@ function datesPrintDelta(label, duration)
 	d = Math.floor(h / 24);
 	h = h % 24;
 
-	printf('%-12s  %10d.%03d s = %dd %02dh %02dm %02d.%03ds\n',
+	printf('%-6s  %10d.%03d s = %dd %02dh %02dm %02d.%03ds\n',
 	    label, Math.floor(duration / 1000), duration % 1000,
 	    d, h, m, s, ms);
 }
