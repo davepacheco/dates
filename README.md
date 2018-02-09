@@ -9,6 +9,7 @@
 
     dates              # prints current time (in several forms)
     dates TIME         # prints time TIME (in several forms)
+    dates [+-]DELTA    # prints current time offset by DELTA
     dates T1 T2        # prints T1, T2, and the delta between them
     dates T1 [+-]DELTA # prints T1, DELTA, and T2 = T1 + DELTA
 
